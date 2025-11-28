@@ -27,17 +27,10 @@ impl ServerRunnerHandle {
 }
 
 pub enum RunnerCommand {
-    StartServer {
-        server: Server,
-    },
-    StartAll {
-        servers: Vec<Server>,
-    },
+    StartServer { server: Server },
+    StartAll { servers: Vec<Server> },
     StopServer { id: usize },
-    Terminated {
-        id: usize,
-        message: String,
-    },
+    Terminated { id: usize, message: String },
     StopAll,
 }
 
@@ -63,14 +56,16 @@ impl ServerRunner {
             .await
             .expect("could not create server directory");
         if server.eula {
-            fs::write(&format!("./servers/{}/game/eula.txt", server.id), "eula=true").await.expect("failed to write to eula");
+            fs::write(
+                &format!("./servers/{}/game/eula.txt", server.id),
+                "eula=true",
+            )
+            .await
+            .expect("failed to write to eula");
         }
         let handle = spawn(async move {
             let mut command = Command::new("java");
-            command.current_dir(&format!(
-                    "./servers/{}/game",
-                    server.id
-            ));
+            command.current_dir(&format!("./servers/{}/game", server.id));
             command.arg("-jar").arg(&format!(
                 "../{}/{}.jar",
                 &server.mc_version_id, &server.mc_version_id
@@ -83,9 +78,7 @@ impl ServerRunner {
     pub async fn run(mut self) -> io::Result<()> {
         while let Some(cmd) = self.cmd_reciever.recv().await {
             match cmd {
-                RunnerCommand::StartServer {
-                    server,
-                } => {
+                RunnerCommand::StartServer { server } => {
                     self.start_server(server).await;
                 }
 
@@ -95,7 +88,9 @@ impl ServerRunner {
                     }
                 }
 
-                _ => {todo!()}
+                _ => {
+                    todo!()
+                }
             }
         }
 

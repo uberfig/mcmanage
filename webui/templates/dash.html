@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+
+  <h1>Dash</h1>
+
+  <a href="/new">create new server</a>
+
+  <h2>Servers:</h2>
+  <ul>
+    {% for server in servers %}
+    <li>
+      <p>{{ server.name }}</p>
+      <p>version {{ server.mc_version_id }}</p>
+      <p>enabled: {{ server.enabled }}</p>
+      {% if server.enabled %}
+      <form action="/disable/{{ server.id }}" method="POST">
+        <button type="submit">disable</button>
+      </form>
+      {% else %}
+      <form action="/enable/{{ server.id }}" method="POST">
+        <button type="submit">disable</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+
+</body>
+
+</html>

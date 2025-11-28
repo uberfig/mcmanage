@@ -1,6 +1,7 @@
 use std::fs::create_dir_all;
 use std::sync::Arc;
 
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use serde::{Deserialize, Serialize};
 
 use tokio::fs;
@@ -11,10 +12,10 @@ use tokio::sync::Mutex;
 use crate::server_runner::ServerRunnerHandle;
 use crate::versions::VersionInfo;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
     pub username: String,
-    pub password: String,
+    pub hashed_password: String,
     pub is_admin: bool,
 }
 
@@ -132,7 +133,25 @@ impl ConfigurationManager {
         *user = updated_user;
         lock.write().await.expect("failed to write updated config");
     }
-    /// add a new server and return its id, ignores whatever id is provided
+    pub async fn get_user(&self, username: String) -> Option<User> {
+        let lock = self.manager.lock().await;
+        lock.users.iter().find(|x| x.username == username).cloned()
+    }
+    pub async fn has_users(&self) -> bool {
+        let lock = self.manager.lock().await;
+        !lock.users.is_empty()
+    }
+    pub async fn validate_password(&self, username: String, password: String) -> Result<(), ()> {
+        if let Some(user) = self.get_user(username).await {
+            let parsed_hash =
+                PasswordHash::new(&user.hashed_password).expect("invalid password hash stored");
+            if let Ok(_) = Argon2::default().verify_password(password.as_bytes(), &parsed_hash) {
+                return Ok(());
+            }
+        }
+        Err(())
+    }
+    /// add a new server and return it, ignores whatever id or port is provided
     pub async fn add_server(&self, mut new_server: Server) -> Server {
         let mut lock = self.manager.lock().await;
         let new_id = lock.next_server_id;
@@ -152,6 +171,10 @@ impl ConfigurationManager {
             .expect("updating nonexistent server");
         *server = updated_server;
         lock.write().await.expect("failed to write updated config");
+    }
+    pub async fn get_servers(&self) -> Vec<Server> {
+        let lock = self.manager.lock().await;
+        lock.servers.clone()
     }
     pub async fn create_new_server(&self, name: String, version: VersionInfo) -> Server {
         let server = Server::new(name, version.id.clone());
