@@ -1,4 +1,4 @@
-use crate::webui::{auth::{login, login_page, signup, signup_page}, dash::dash};
+use crate::webui::{auth::{login, login_page, signup, signup_page}, dash::dash, new::new_server};
 
 pub fn get_api_routes() -> actix_web::Scope {
     actix_web::web::scope("")
@@ -7,4 +7,5 @@ pub fn get_api_routes() -> actix_web::Scope {
         .service(signup_page)
         .service(signup)
         .service(dash)
+        .service(new_server)
 }

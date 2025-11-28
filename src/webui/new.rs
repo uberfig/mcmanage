@@ -1,10 +1,11 @@
 use actix_web::{
-    HttpRequest, HttpResponse, Responder, get, http::{StatusCode, header::ContentType}, web::{self, Data}
+    HttpRequest, HttpResponse, Responder, get, http::{StatusCode, header::ContentType}, post, web::{self, Data}
 };
 use lazy_static::lazy_static;
+use serde::Deserialize;
 use tera::{Context, Tera};
 
-use crate::{configuration::User, webui::{auth::Info, state::WebState}};
+use crate::{configuration::User, versions::PackagesList, webui::{auth::Info, state::WebState}};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
@@ -40,11 +41,50 @@ async fn new_server(req: HttpRequest, state: Data<WebState>) -> impl Responder {
             .body("");
     };
 
+    let packages = PackagesList::new().await;
+    let latest = packages.get_latest_release();
+
     let mut context = Context::new();
-    context.insert("servers", &state.config.get_servers().await);
+    context.insert("latest", &latest.id);
+    context.insert("versions", &packages.versions);
     let body = TEMPLATES.render("new_server.html", &context).expect("failed to render");
 
     HttpResponse::build(StatusCode::OK)
         .content_type(ContentType::html())
         .body(body)
+}
+
+#[derive(Deserialize)]
+pub struct NewServer {
+    pub servername: String,
+    pub version: String,
+    pub eula: bool,
+}
+
+#[post("/new")]
+async fn create_new_server(req: HttpRequest, state: Data<WebState>, web::Form(form): web::Form<NewServer>) -> impl Responder {
+    let user = if let Some(cookie) = req.cookie("auth") {
+        if let Ok(user) = serde_json::from_str::<Info>(&cookie.value()) {
+            match state.config.validate_password(user.username.clone(), user.password.clone()).await {
+                Ok(_) => Some(user),
+                Err(_) => None,
+            }
+        }
+        else {
+            println!("bad cookie");
+            None
+        }
+    }
+    else {
+        println!("no cookie");
+        None
+    };
+    let Some(user) = user else {
+        println!("new server login failed");
+        return HttpResponse::TemporaryRedirect()
+            .insert_header(("Location", "/login"))
+            .body("");
+    };
+
+    todo!()
 }

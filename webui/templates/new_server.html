@@ -3,19 +3,21 @@
 
 <body>
 
-  <h1>create new servevr</h1>
+  <h1>create new server</h1>
   <form action="/new" method="POST">
     <label for="servername">server name:</label><br>
     <input type="text" id="servername" name="servername" value="" required><br>
 
-    <label for="version">mc version:</label>
+    <label for="version">mc version:</label><br>
     <select name="version" id="version" value="{{ latest }}" required>
       {% for version in versions %}
-        <option value="{{ version.id }}">{{ version.type }} {{ version.id }}</option>
+        <option value="{{ version.id }}" {% if version.id == latest %}selected{% endif %}>
+          {{ version.type }} {{ version.id }}
+        </option>
       {% endfor %}
-    </select>
+    </select><br>
 
-    <label for="eula">eula (By changing the setting below to TRUE you are indicating your agreement to our EULA (<a
+    <label for="eula">eula (By changing the setting below to TRUE you are indicating your agreement to mojang's EULA (<a
         href="https://aka.ms/MinecraftEULA">https://aka.ms/MinecraftEULA</a>)):</label><br>
     <input type="checkbox" id="eula" name="eula" value=false required><br>
     <button type="submit">create</button>
