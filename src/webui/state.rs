@@ -53,4 +53,14 @@ impl WebState {
         self.config.start_all(self.runner_handle.clone()).await;
         server
     }
+    pub async fn disable_server(&self, server_id: usize) {
+        self.runner_handle.stop_specific(server_id);
+        self.config.set_server_enabled(server_id, false).await;
+    }
+    pub async fn enable_server(&self, server_id: usize) {
+        self.runner_handle.stop_all();
+        self.config.disable_all().await;
+        self.config.set_server_enabled(server_id, true).await;
+        self.config.start_all(self.runner_handle.clone()).await;
+    }
 }

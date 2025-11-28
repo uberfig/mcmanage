@@ -4,7 +4,7 @@ use crate::webui::{
     auth::{Info, login, login_page, signup, signup_page},
     dash::dash,
     new::{create_new_server, new_server},
-    state::WebState,
+    state::WebState, toggle_enabled::{set_disabled, set_enabled},
 };
 
 #[get("/")]
@@ -45,4 +45,6 @@ pub fn get_api_routes() -> actix_web::Scope {
         .service(new_server)
         .service(create_new_server)
         .service(home_redirector)
+        .service(set_disabled)
+        .service(set_enabled)
 }

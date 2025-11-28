@@ -27,6 +27,9 @@ impl ServerRunnerHandle {
     pub fn stop_all(&self) {
         self.cmd_tx.send(RunnerCommand::StopAll).unwrap();
     }
+    pub fn stop_specific(&self, server: usize) {
+        self.cmd_tx.send(RunnerCommand::StopServer { id: server }).unwrap();
+    }
 }
 
 pub enum RunnerCommand {
@@ -39,7 +42,7 @@ pub enum RunnerCommand {
 
 pub struct ServerRunner {
     cmd_reciever: mpsc::UnboundedReceiver<RunnerCommand>,
-    active_servers: HashMap<usize, tokio::task::JoinHandle<()>>,
+    active_servers: HashMap<usize, tokio::process::Child>,
 }
 
 impl ServerRunner {
@@ -52,8 +55,8 @@ impl ServerRunner {
         (new, ServerRunnerHandle { cmd_tx })
     }
     async fn start_server(&mut self, server: Server) {
-        if let Some(existing) = self.active_servers.get(&server.id) {
-            existing.abort();
+        if let Some(mut existing) = self.active_servers.remove(&server.id) {
+            existing.kill().await.expect("failed to kill server");
         }
         create_dir_all(&format!("./servers/{}/game", server.id))
             .await
@@ -66,8 +69,7 @@ impl ServerRunner {
             .await
             .expect("failed to write to eula");
         }
-        let handle = spawn(async move {
-            let mut command = Command::new("java");
+        let mut command = Command::new("java");
             command.current_dir(&format!("./servers/{}/game", server.id));
             command
                 .arg("-jar")
@@ -76,10 +78,8 @@ impl ServerRunner {
                     &server.mc_version_id, &server.mc_version_id
                 ))
                 .arg("nogui");
-            let status = command.status().await;
-            // todo send Terminated
-        });
-        self.active_servers.insert(server.id, handle);
+            let status = command.kill_on_drop(true).spawn().expect("could not spawn server");
+        self.active_servers.insert(server.id, status);
     }
     pub async fn run(mut self) -> io::Result<()> {
         while let Some(cmd) = self.cmd_reciever.recv().await {
@@ -95,14 +95,18 @@ impl ServerRunner {
                 }
 
                 RunnerCommand::StopAll => {
-                    for (_, server) in &self.active_servers {
-                        server.abort();
+                    for (_, server) in &mut self.active_servers {
+                        server.kill().await.expect("failed to kill server");
                     }
                 }
 
-                _ => {
-                    todo!()
+                RunnerCommand::StopServer { id } => {
+                    if let Some(server) = &mut self.active_servers.remove(&id) {
+                        server.kill().await.expect("failed to kill server");
+                    }
                 }
+
+                _ => todo!(), 
             }
         }
 

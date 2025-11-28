@@ -1,7 +1,14 @@
+# McManage
+
+mcmanage is a dirt simple minecraft manager that allows for simple creation of minecraft servers and toggling them on and off through a nice web ui
+
+currently only supports running one server at a time as we would need reverse proxy or some way to punch new firewall holes for servers which isn't great
+
 todo: 
 - [x] mojang api
 - [x] downloading and running servers
-- [ ] web ui & management accounts
+- [x] web ui for creation and enable/disable servers
 - [ ] daily backups rotating weekly
 - [ ] proper server configuration with modifying the server properties
-- [ ] udp reverse proxy for domain names
+- [ ] support for fabric servers 
+- [ ] mod support
