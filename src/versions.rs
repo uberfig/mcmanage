@@ -54,14 +54,12 @@ pub struct PackagesList {
 
 impl PackagesList {
     pub fn get_version(&self, version_id: &str) -> Option<McVersion> {
-        let version = self
-            .versions
-            .iter()
-            .find(|&x| x.id.eq(version_id));
+        let version = self.versions.iter().find(|&x| x.id.eq(version_id));
         version.cloned()
     }
     pub fn get_latest_release(&self) -> McVersion {
-        self.get_version(&self.latest.release).expect("unable to get latest")
+        self.get_version(&self.latest.release)
+            .expect("unable to get latest")
     }
     pub async fn new() -> Self {
         let res = reqwest::get(PACKAGES_ENDPOINT)

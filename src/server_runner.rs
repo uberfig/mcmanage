@@ -24,6 +24,9 @@ impl ServerRunnerHandle {
             .send(RunnerCommand::StartAll { servers })
             .unwrap();
     }
+    pub fn stop_all(&self) {
+        self.cmd_tx.send(RunnerCommand::StopAll).unwrap();
+    }
 }
 
 pub enum RunnerCommand {
@@ -66,10 +69,13 @@ impl ServerRunner {
         let handle = spawn(async move {
             let mut command = Command::new("java");
             command.current_dir(&format!("./servers/{}/game", server.id));
-            command.arg("-jar").arg(&format!(
-                "../{}/{}.jar",
-                &server.mc_version_id, &server.mc_version_id
-            ));
+            command
+                .arg("-jar")
+                .arg(&format!(
+                    "../../../server_versions/{}/{}.jar",
+                    &server.mc_version_id, &server.mc_version_id
+                ))
+                .arg("nogui");
             let status = command.status().await;
             // todo send Terminated
         });
@@ -85,6 +91,12 @@ impl ServerRunner {
                 RunnerCommand::StartAll { servers } => {
                     for server in servers {
                         self.start_server(server).await;
+                    }
+                }
+
+                RunnerCommand::StopAll => {
+                    for (_, server) in &self.active_servers {
+                        server.abort();
                     }
                 }
 

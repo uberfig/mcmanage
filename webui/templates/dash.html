@@ -12,15 +12,16 @@
     {% for server in servers %}
     <li>
       <p>{{ server.name }}</p>
-      <p>version {{ server.mc_version_id }}</p>
+      <p>version: {{ server.mc_version_id }}</p>
+      <p>eula: {{ server.eula }}</p>
       <p>enabled: {{ server.enabled }}</p>
-      {% if server.enabled %}
+      {% if server.enabled == true %}
       <form action="/disable/{{ server.id }}" method="POST">
         <button type="submit">disable</button>
       </form>
       {% else %}
       <form action="/enable/{{ server.id }}" method="POST">
-        <button type="submit">disable</button>
+        <button type="submit">enable</button>
       </form>
       {% endif %}
     </li>

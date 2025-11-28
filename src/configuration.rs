@@ -9,6 +9,7 @@ use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 
+use crate::downloader::Downloader;
 use crate::server_runner::ServerRunnerHandle;
 use crate::versions::VersionInfo;
 
@@ -39,7 +40,7 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(name: String, version_id: String) -> Self {
+    pub fn new(name: String, version_id: String, eula: bool) -> Self {
         Self {
             id: 0,
             name,
@@ -48,7 +49,7 @@ impl Server {
             server_type: ServerType::Vanilla,
             mc_version_id: version_id,
             enabled: true,
-            eula: false,
+            eula,
         }
     }
 }
@@ -176,24 +177,26 @@ impl ConfigurationManager {
         let lock = self.manager.lock().await;
         lock.servers.clone()
     }
-    pub async fn create_new_server(&self, name: String, version: VersionInfo) -> Server {
-        let server = Server::new(name, version.id.clone());
+    pub async fn create_new_server(
+        &self,
+        name: String,
+        version: VersionInfo,
+        eula: bool,
+    ) -> Server {
+        let server = Server::new(name, version.id.clone(), eula);
         let server = self.add_server(server).await;
-        create_dir_all(&format!("./servers/{}/{}/", server.id, &version.id))
-            .expect("could not create server directory");
-        version
-            .downloads
-            .server
-            .download(&format!(
-                "./servers/{}/{}/{}.jar",
-                server.id, &version.id, &version.id
-            ))
-            .await
-            .expect("failed to download new server");
+        Downloader::ensure_available(version).await;
         return server;
     }
     pub async fn start_all(&self, handle: ServerRunnerHandle) {
         let lock = self.manager.lock().await;
         handle.start_all(lock.servers.clone());
+    }
+    pub async fn disable_all(&self) {
+        let mut lock = self.manager.lock().await;
+        for server in &mut lock.servers {
+            server.enabled = false;
+        }
+        lock.write().await.expect("failed to write config to disk")
     }
 }
