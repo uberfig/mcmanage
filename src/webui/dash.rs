@@ -1,10 +1,15 @@
 use actix_web::{
-    HttpRequest, HttpResponse, Responder, get, http::{StatusCode, header::ContentType}, web::{self, Data}
+    HttpRequest, HttpResponse, Responder, get,
+    http::{StatusCode, header::ContentType},
+    web::{self, Data},
 };
 use lazy_static::lazy_static;
 use tera::{Context, Tera};
 
-use crate::{configuration::User, webui::{auth::Info, state::WebState}};
+use crate::{
+    configuration::User,
+    webui::{auth::Info, state::WebState},
+};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
@@ -19,17 +24,19 @@ lazy_static! {
 async fn dash(req: HttpRequest, state: Data<WebState>) -> impl Responder {
     let user = if let Some(cookie) = req.cookie("auth") {
         if let Ok(user) = serde_json::from_str::<Info>(&cookie.value()) {
-            match state.config.validate_password(user.username.clone(), user.password.clone()).await {
+            match state
+                .config
+                .validate_password(user.username.clone(), user.password.clone())
+                .await
+            {
                 Ok(_) => Some(user),
                 Err(_) => None,
             }
-        }
-        else {
+        } else {
             println!("bad cookie");
             None
         }
-    }
-    else {
+    } else {
         println!("no cookie");
         None
     };
@@ -42,7 +49,9 @@ async fn dash(req: HttpRequest, state: Data<WebState>) -> impl Responder {
 
     let mut context = Context::new();
     context.insert("servers", &state.config.get_servers().await);
-    let body = TEMPLATES.render("dash.html", &context).expect("failed to render");
+    let body = TEMPLATES
+        .render("dash.html", &context)
+        .expect("failed to render");
 
     HttpResponse::build(StatusCode::OK)
         .content_type(ContentType::html())
