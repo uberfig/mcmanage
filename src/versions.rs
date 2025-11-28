@@ -1,9 +1,7 @@
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tokio::{
-    fs::{File, remove_file},
-    io::{self, AsyncReadExt, AsyncWriteExt},
-    join,
+    fs::File,
+    io::AsyncWriteExt,
 };
 use tokio_stream::StreamExt;
 pub const PACKAGES_ENDPOINT: &str = "https://launchermeta.mojang.com/mc/game/version_manifest.json";

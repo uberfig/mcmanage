@@ -1,13 +1,12 @@
 use actix_web::{
     HttpRequest, HttpResponse, Responder, get,
     http::{StatusCode, header::ContentType},
-    web::{self, Data},
+    web::Data,
 };
 use lazy_static::lazy_static;
 use tera::{Context, Tera};
 
 use crate::{
-    configuration::User,
     webui::{auth::Info, state::WebState},
 };
 
@@ -40,7 +39,7 @@ async fn dash(req: HttpRequest, state: Data<WebState>) -> impl Responder {
         println!("no cookie");
         None
     };
-    let Some(user) = user else {
+    let Some(_user) = user else {
         println!("dash login failed");
         return HttpResponse::TemporaryRedirect()
             .insert_header(("Location", "/login"))

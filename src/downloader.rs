@@ -1,6 +1,6 @@
 use std::{fs::create_dir_all, path::Path};
 
-use crate::versions::{DownloadInfo, VersionInfo};
+use crate::versions::VersionInfo;
 
 pub struct Downloader;
 

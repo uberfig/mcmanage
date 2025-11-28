@@ -1,4 +1,3 @@
-use std::fs::create_dir_all;
 use std::sync::Arc;
 
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
@@ -179,10 +178,7 @@ impl ConfigurationManager {
     }
     pub async fn set_server_enabled(&self, server: usize, enabled: bool) {
         let mut lock = self.manager.lock().await;
-        let server = lock
-            .servers
-            .iter_mut()
-            .find(|x| x.id == server);
+        let server = lock.servers.iter_mut().find(|x| x.id == server);
         if let Some(server) = server {
             server.enabled = enabled;
         }
@@ -201,7 +197,13 @@ impl ConfigurationManager {
     }
     pub async fn start_all(&self, handle: ServerRunnerHandle) {
         let lock = self.manager.lock().await;
-        handle.start_all(lock.servers.clone().into_iter().filter(|x| x.enabled).collect());
+        handle.start_all(
+            lock.servers
+                .clone()
+                .into_iter()
+                .filter(|x| x.enabled)
+                .collect(),
+        );
     }
     pub async fn disable_all(&self) {
         let mut lock = self.manager.lock().await;

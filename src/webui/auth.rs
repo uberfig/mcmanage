@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use argon2::{
     Argon2,
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
+    password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
 };
 
 use crate::{configuration::User, webui::state::WebState};

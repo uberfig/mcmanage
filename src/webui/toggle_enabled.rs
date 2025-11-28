@@ -1,20 +1,14 @@
+use crate::webui::{auth::Info, state::WebState};
 use actix_web::{
-    HttpRequest, HttpResponse, Responder, 
-    post,
+    HttpRequest, HttpResponse, Responder, post,
     web::{self, Data},
 };
-use crate::
-    webui::{
-        auth::Info,
-        state::WebState,
-    }
-;
 
 #[post("disable/{id}")]
 async fn set_disabled(
     req: HttpRequest,
     state: Data<WebState>,
-    path: web::Path<usize>
+    path: web::Path<usize>,
 ) -> impl Responder {
     let user = if let Some(cookie) = req.cookie("auth") {
         if let Ok(user) = serde_json::from_str::<Info>(&cookie.value()) {
@@ -52,7 +46,7 @@ async fn set_disabled(
 async fn set_enabled(
     req: HttpRequest,
     state: Data<WebState>,
-    path: web::Path<usize>
+    path: web::Path<usize>,
 ) -> impl Responder {
     let user = if let Some(cookie) = req.cookie("auth") {
         if let Ok(user) = serde_json::from_str::<Info>(&cookie.value()) {

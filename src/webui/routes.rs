@@ -4,7 +4,8 @@ use crate::webui::{
     auth::{Info, login, login_page, signup, signup_page},
     dash::dash,
     new::{create_new_server, new_server},
-    state::WebState, toggle_enabled::{set_disabled, set_enabled},
+    state::WebState,
+    toggle_enabled::{set_disabled, set_enabled},
 };
 
 #[get("/")]
