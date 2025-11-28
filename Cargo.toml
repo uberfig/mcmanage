@@ -1,0 +1,13 @@
+[package]
+name = "mcmanage"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+actix-web = { version = "4.11.0", features = ["rustls"] }
+argon2 = "0.5.3"
+reqwest = { version = "0.12.24", default-features = false, features = ["json", "rustls-tls", "stream"] }
+serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread", "fs", "process"] }
+tokio-stream = "0.1.17"
+toml = "0.9.8"
