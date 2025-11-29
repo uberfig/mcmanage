@@ -176,6 +176,10 @@ impl ConfigurationManager {
         let lock = self.manager.lock().await;
         lock.servers.clone()
     }
+    pub async fn get_server(&self, server_id: usize) -> Option<Server> {
+        let lock = self.manager.lock().await;
+        lock.servers.iter().find(|x| x.id == server_id).cloned()
+    }
     pub async fn set_server_enabled(&self, server: usize, enabled: bool) {
         let mut lock = self.manager.lock().await;
         let server = lock.servers.iter_mut().find(|x| x.id == server);

@@ -6,9 +6,7 @@ use actix_web::{
 use lazy_static::lazy_static;
 use tera::{Context, Tera};
 
-use crate::{
-    webui::{auth::Info, state::WebState},
-};
+use crate::webui::{auth::Info, state::WebState};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {

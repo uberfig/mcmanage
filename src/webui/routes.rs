@@ -2,6 +2,7 @@ use actix_web::{HttpRequest, HttpResponse, Responder, get, web::Data};
 
 use crate::webui::{
     auth::{Info, login, login_page, signup, signup_page},
+    commands::{command_dashboard, command_endpoint},
     dash::dash,
     new::{create_new_server, new_server},
     state::WebState,
@@ -48,4 +49,6 @@ pub fn get_api_routes() -> actix_web::Scope {
         .service(home_redirector)
         .service(set_disabled)
         .service(set_enabled)
+        .service(command_dashboard)
+        .service(command_endpoint)
 }

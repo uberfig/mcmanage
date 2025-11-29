@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+
+  <h1>{{ server.name }}</h1>
+  <p>version: {{ server.mc_version_id }}</p>
+  <p>eula: {{ server.eula }}</p>
+  <p>enabled: {{ server.enabled }}</p>
+  <h2>log:</h2>
+  <pre><code>
+    {{ output }}
+  </code></pre>
+
+  <form action="/command/{{ server.id }}" method="POST">
+    <label for="fname">issue command:</label><br>
+    <input type="text" id="command" name="command" value="" required><br>
+    <button type="submit">send</button>
+  </form>
+
+</body>
+
+</html>

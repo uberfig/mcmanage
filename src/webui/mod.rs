@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod commands;
 pub mod dash;
 pub mod new;
 pub mod routes;

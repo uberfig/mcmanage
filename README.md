@@ -8,7 +8,7 @@ todo:
 - [x] mojang api
 - [x] downloading and running servers
 - [x] web ui for creation and enable/disable servers
+- [x] issue commands through the admin panel
 - [ ] daily backups rotating weekly
-- [ ] proper server configuration with modifying the server properties
 - [ ] support for fabric servers 
 - [ ] mod support

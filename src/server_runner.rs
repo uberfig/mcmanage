@@ -1,11 +1,14 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::process::Stdio;
+use std::sync::Arc;
+use std::time::Duration;
 
 use actix_web::rt::spawn;
 use tokio::fs::{self, create_dir_all};
-use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
-use tokio::process::Command;
-use tokio::sync::{mpsc, oneshot};
+use tokio::io::{self, AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+use tokio::process::{Child, Command};
+use tokio::sync::{RwLock, mpsc, oneshot};
+use tokio::time::timeout;
 
 use crate::configuration::Server;
 
@@ -34,6 +37,7 @@ impl ServerRunnerHandle {
             .unwrap();
     }
     pub fn issue_command(&self, server: usize, command: String) {
+        println!("issuing command {}", &command);
         self.cmd_tx
             .send(RunnerCommand::IssueCommand {
                 id: server,
@@ -79,7 +83,35 @@ pub enum RunnerCommand {
 
 pub struct ServerRunner {
     cmd_reciever: mpsc::UnboundedReceiver<RunnerCommand>,
-    active_servers: HashMap<usize, tokio::process::Child>,
+    active_servers: HashMap<usize, ServerProcess>,
+}
+
+pub struct ServerProcess {
+    child_process: tokio::process::Child,
+    text_log: Arc<RwLock<VecDeque<String>>>,
+    stdin: tokio::io::BufWriter<tokio::process::ChildStdin>,
+}
+
+async fn append_to_log(text_log: Arc<RwLock<VecDeque<String>>>, line: String) {
+    println!("writing to log");
+    let mut writing = text_log.write().await;
+    writing.push_back(line);
+    if writing.len() > 200 {
+        let _ = writing.pop_front();
+    }
+    println!("wrote to log");
+}
+
+async fn append_many_to_log(text_log: Arc<RwLock<VecDeque<String>>>, lines: Vec<String>) {
+    println!("writing to log");
+    let mut writing = text_log.write().await;
+    for line in lines{
+        writing.push_back(line);
+    if writing.len() > 200 {
+        let _ = writing.pop_front();
+    }
+    }
+    println!("wrote to log");
 }
 
 impl ServerRunner {
@@ -93,7 +125,11 @@ impl ServerRunner {
     }
     async fn start_server(&mut self, server: Server) {
         if let Some(mut existing) = self.active_servers.remove(&server.id) {
-            existing.kill().await.expect("failed to kill server");
+            existing
+                .child_process
+                .kill()
+                .await
+                .expect("failed to kill server");
         }
         create_dir_all(&format!("./servers/{}/game", server.id))
             .await
@@ -117,11 +153,31 @@ impl ServerRunner {
             .arg("nogui")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped());
-        let status = command
+        let mut status = command
             .kill_on_drop(true)
             .spawn()
             .expect("could not spawn server");
-        self.active_servers.insert(server.id, status);
+        let text_log = Arc::new(RwLock::new(VecDeque::new()));        
+        
+        let stdout = BufReader::new(status.stdout.take().unwrap());
+        let stdin = BufWriter::new(status.stdin.take().unwrap());
+
+        self.active_servers.insert(
+            server.id,
+            ServerProcess {
+                child_process: status,
+                text_log: text_log.clone(),
+                stdin: stdin,
+            },
+        );
+        spawn(async move {
+            let mut reader = stdout.lines();
+            while let Ok(Some(line)) = reader.next_line().await {
+                println!("{}", &line);
+                append_to_log(text_log.clone(), line).await;
+            }
+            println!("reader dead");
+        });
     }
     pub async fn run(mut self) -> io::Result<()> {
         'meow: while let Some(cmd) = self.cmd_reciever.recv().await {
@@ -136,22 +192,33 @@ impl ServerRunner {
                 }
                 RunnerCommand::StopAll => {
                     for (_, server) in &mut self.active_servers {
-                        server.kill().await.expect("failed to kill server");
+                        server
+                            .child_process
+                            .kill()
+                            .await
+                            .expect("failed to kill server");
                     }
                 }
                 RunnerCommand::StopServer { id } => {
                     if let Some(server) = &mut self.active_servers.remove(&id) {
-                        server.kill().await.expect("failed to kill server");
+                        server
+                            .child_process
+                            .kill()
+                            .await
+                            .expect("failed to kill server");
                     }
                 }
                 RunnerCommand::IssueCommand { id, command } => {
+                    println!("command recieved: {}", &command);
                     if let Some(server) = self.active_servers.get_mut(&id) {
-                        if let Some(mut input) = server.stdin.take() {
-                            input
-                                .write_all(command.as_bytes())
-                                .await
-                                .expect("could not issue command");
-                        }
+                        println!("hello");
+                        server
+                            .stdin
+                            .write_all(format!("{}\n", command).as_bytes())
+                            .await
+                            .expect("could not issue command");
+                        server.stdin.flush().await.expect("failed to flush stdin");
+                        append_to_log(server.text_log.clone(), command).await;
                     }
                 }
                 RunnerCommand::GetOutput {
@@ -159,15 +226,13 @@ impl ServerRunner {
                     response_handle,
                 } => {
                     if let Some(server) = self.active_servers.get_mut(&id) {
-                        if let Some(mut output) = server.stdout.take() {
-                            let mut buffer = String::new();
-                            output.read_to_string(&mut buffer).await.expect("Failed to read stdout");
-                            let _ = response_handle.send(Some(buffer));
-                            continue 'meow;
-                        }
+                        let data = server.text_log.read().await;
+                        let data: Vec<String> = data.clone().into();
+                        let _ = response_handle.send(Some(data.join("\n")));
+                        continue 'meow;
                     }
                     let _ = response_handle.send(None);
-                },
+                }
             }
         }
 

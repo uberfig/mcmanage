@@ -11,7 +11,7 @@
   <ul>
     {% for server in servers %}
     <li>
-      <p>{{ server.name }}</p>
+      <p><a href="/server/{{ server.id }}">{{ server.name }}</a></p>
       <p>version: {{ server.mc_version_id }}</p>
       <p>eula: {{ server.eula }}</p>
       <p>enabled: {{ server.enabled }}</p>
