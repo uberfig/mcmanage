@@ -103,7 +103,6 @@ async fn append_to_log(text_log: Arc<RwLock<VecDeque<String>>>, line: String) {
 }
 
 async fn append_many_to_log(text_log: Arc<RwLock<VecDeque<String>>>, lines: Vec<String>) {
-    println!("writing to log");
     let mut writing = text_log.write().await;
     for line in lines{
         writing.push_back(line);
@@ -111,7 +110,6 @@ async fn append_many_to_log(text_log: Arc<RwLock<VecDeque<String>>>, lines: Vec<
         let _ = writing.pop_front();
     }
     }
-    println!("wrote to log");
 }
 
 impl ServerRunner {
@@ -173,7 +171,6 @@ impl ServerRunner {
         spawn(async move {
             let mut reader = stdout.lines();
             while let Ok(Some(line)) = reader.next_line().await {
-                println!("{}", &line);
                 append_to_log(text_log.clone(), line).await;
             }
             println!("reader dead");
@@ -211,7 +208,6 @@ impl ServerRunner {
                 RunnerCommand::IssueCommand { id, command } => {
                     println!("command recieved: {}", &command);
                     if let Some(server) = self.active_servers.get_mut(&id) {
-                        println!("hello");
                         server
                             .stdin
                             .write_all(format!("{}\n", command).as_bytes())
