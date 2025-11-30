@@ -93,22 +93,10 @@ pub struct ServerProcess {
 }
 
 async fn append_to_log(text_log: Arc<RwLock<VecDeque<String>>>, line: String) {
-    println!("writing to log");
     let mut writing = text_log.write().await;
     writing.push_back(line);
     if writing.len() > 200 {
         let _ = writing.pop_front();
-    }
-    println!("wrote to log");
-}
-
-async fn append_many_to_log(text_log: Arc<RwLock<VecDeque<String>>>, lines: Vec<String>) {
-    let mut writing = text_log.write().await;
-    for line in lines{
-        writing.push_back(line);
-    if writing.len() > 200 {
-        let _ = writing.pop_front();
-    }
     }
 }
 
